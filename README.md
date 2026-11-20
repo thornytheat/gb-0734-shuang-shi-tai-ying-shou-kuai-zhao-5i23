@@ -13,6 +13,7 @@ docker compose exec -T app pytest -q
 
 - 「变更收件」可上传分部的 `sample_data/branch-gb18030.csv` 或查看隔离原值。
 - 「期间桥接」可查看总账、五个账龄桶与逐发票变动。
+- 「迁移对账」声明到期日口径、列出受影响发票，各桶对平后可发布，重跑复用原批次。
 - 「归档快照」保存当前期间，在「快照归档」可选历史记录、重跑和导出一份 JSON 证据。
 - 容器的 SQLite 位于命名卷 `workbench`。如需重建并确认可丢弃所有本地归档与导入文件，执行 `docker compose down -v` 后重新启动。
 
@@ -26,7 +27,7 @@ python -m pytest -q
 python -m uvicorn app.main:app --port 18423
 ```
 
-## 七个业务入口
+## 八个业务入口
 
 | 模块 | API | 主要结论 |
 |---|---|---|
@@ -36,6 +37,7 @@ python -m uvicorn app.main:app --port 18423
 | 过期应收 | `GET /api/aging` | 五个账龄桶与发票证据 |
 | 迟报回补 | `GET /api/backfill` | 固定期初有效日后的事件及余额变化 |
 | 期间桥接 | `GET /api/bridge` | 期初、迟报、迁移、本期与期末 |
+| 迁移对账 | `GET/POST /api/migration` | 到期日口径、受影响发票与可发布批次 |
 | 快照归档 | `GET/POST /api/archive` | 批次与摘要、幂等重跑与证据 |
 
 [数据定义](docs/DATA-DICTIONARY.md)说明日期边界、冲突取舍和对账公式。[深度登记](docs/DEPTH.md)列出可重复验证的情形。

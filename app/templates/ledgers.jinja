@@ -21,6 +21,13 @@
   <section class="panel wide-panel"><div class="panel-head"><h2>账龄桶桥接</h2><span class="subtle">CNY</span></div><div id="bridge-buckets" class="scroll-table"></div></section>
   <section class="panel span-all"><div class="panel-head"><h2>发票桥接明细</h2></div><div id="bridge-list" class="scroll-table"></div></section>
 </section>
+<section data-page="migration" class="grid ledger-grid" hidden>
+  <section class="panel"><div class="panel-head"><h2>到期日口径</h2><button id="migration-publish" class="btn" type="button">发布对账</button></div><div id="migration-basis" class="panel-body"></div></section>
+  <section class="panel wide-panel"><div class="panel-head"><h2>账龄桶对平</h2><span class="subtle">期初＋迟报＋迁移＋本期＝期末</span></div><div id="migration-buckets" class="scroll-table"></div></section>
+  <section class="panel span-all"><div class="panel-head"><h2>受影响发票</h2><span id="migration-state" class="subtle">—</span></div><div id="migration-list" class="scroll-table"></div></section>
+  <section class="panel wide-panel"><div class="panel-head"><h2>发布批次</h2><span class="subtle">同参数复用原批次</span></div><div id="migration-runs" class="scroll-table"></div></section>
+  <section class="panel"><div class="panel-head"><h2>批次清单</h2><button id="migration-rerun" class="btn" type="button" disabled>重跑该项</button></div><div id="migration-detail" class="panel-body"><p class="empty">请选择发布批次</p></div></section>
+</section>
 <section data-page="archive" class="grid ledger-grid" hidden>
   <section class="panel wide-panel"><div class="panel-head"><h2>归档批次</h2><button id="rerun" class="btn" type="button" disabled>重跑归档</button></div><div id="archive-list" class="scroll-table"></div></section>
   <section class="panel"><div class="panel-head"><h2>运行清单</h2></div><div id="archive-detail" class="panel-body"><p class="empty">请选择归档批次</p></div></section>

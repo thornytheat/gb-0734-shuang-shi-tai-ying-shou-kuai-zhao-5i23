@@ -197,6 +197,60 @@ export function bridge(data) {
     }));
 }
 
+const causeNames = {
+  DUE_CORRECTED: '到期日更正', LATE_REVISION: '补报版本', LATE_ARRIVAL: '迟报新见',
+  AGED: '账龄迁移', ENTERED: '本期新增', EXITED: '本期退场', CLEARED: '本期结清',
+};
+const band = (key) => (key ? bucketNames[key] : '—');
+const cashMaybe = (value) => (value == null ? null : cash(value));
+
+function versionSection(title, version, balance) {
+  if (!version) return evidenceSection(title, [['有效版本', '—']]);
+  return eventSection(title, version, balance == null ? [] : [['余额', money(balance)]]);
+}
+
+export function migration(data) {
+  $('migration-state').textContent = data.publishable ? '已对平，可发布' : '存在未解释差额';
+  $('migration-state').className = data.publishable ? 'subtle good' : 'subtle warn';
+  const basis = data.due_basis;
+  $('migration-basis').replaceChildren(definitions([['期初桶位', basis.opening], ['迟报重定', basis.restated],
+    ['迁移', basis.migration], ['期末桶位', basis.closing],
+    ['对账状态', data.status === 'MATCHED' ? '已对平' : '存在差额'],
+    ['未解释差额', money(data.unexplained.amount_cents)],
+    ['发布批次', data.published ? data.published.publish_id.slice(0, 12) : '未发布']]));
+  table('migration-buckets', ['账龄桶', ['期初', 'num'], ['迟报', 'num'], ['迁移', 'num'], ['本期', 'num'], ['期末', 'num'], ['差额', 'num']],
+    data.buckets.map((row) => [row.label, cash(row.opening_cents), cash(row.late_cents), cash(row.migration_cents),
+      cash(row.period_cents), cash(row.closing_cents), cash(row.difference_cents)]));
+  table('migration-list', ['发票 / 客户', '到期日 期初→期末', '桶路径 期初→回补→迁移→期末', '标记', ['期末余额', 'num'], '证据'],
+    data.migrations.map((row) => [
+      cell(`${row.invoice_id} / ${row.customer_id}`, 'mono'),
+      cell(`${row.due.opening ?? '—'} → ${row.due.closing ?? '—'}`, 'mono'),
+      `${band(row.bucket_path.opening)} → ${band(row.bucket_path.restated)} → ${band(row.bucket_path.aged_to)} → ${band(row.bucket_path.closing)}`,
+      row.causes.map((cause) => causeNames[cause]).join('、'), cashMaybe(row.balance_cents.closing),
+      evidence(row.invoice_id, () => [
+        versionSection('期初版本', row.opening_version, row.balance_cents.opening),
+        versionSection('补报版本', row.restated_version, row.balance_cents.restated),
+        versionSection('期末版本', row.closing_version, row.balance_cents.closing),
+        ...(row.vouchers.length ? row.vouchers.map((voucher) => eventSection('期末凭证', voucher))
+          : [evidenceSection('期末凭证', [['冲减凭证', '—']])]),
+      ]),
+    ]), '本期间无受影响发票');
+}
+
+export function migrationRuns(runs, selected, pick) {
+  table('migration-runs', ['批次', '生成时间', '规则版本', ['耗时 ms', 'num']], runs.map((run) => {
+    const button = node('button', run.publish_id.slice(0, 12), 'evidence-btn mono');
+    button.type = 'button';
+    button.setAttribute('aria-pressed', String(selected?.publish_id === run.publish_id));
+    button.addEventListener('click', () => pick(run));
+    return [button, instant(run.generated_at), run.rule_version, number(run.elapsed_ms)];
+  }), '请先发布当前切点的对账');
+  if (selected) $('migration-detail').replaceChildren(definitions([['批次号', selected.publish_id],
+    ['源文件 SHA-256', selected.source_id], ['结果 SHA-256', selected.result_digest],
+    ['生成时间', instant(selected.generated_at)], ['规则版本', selected.rule_version], ['耗时 ms', selected.elapsed_ms]]));
+  else $('migration-detail').replaceChildren(node('p', '请选择发布批次', 'empty'));
+}
+
 export function history(runs, selected, pick) {
   table('archive-list', ['批次', '生成时间', '规则版本', ['耗时 ms', 'num']], runs.map((run) => {
     const button = node('button', run.run_id.slice(0, 12), 'evidence-btn mono');

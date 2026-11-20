@@ -8,7 +8,7 @@ def test_all_module_routes_after_real_file_upload(client, raw, params):
     assert reply.json()['source_id'] == source_id
     assert client.get(f'/api/intake/{source_id}').json() == reply.json()
     query = {**params, 'source_id': source_id}
-    routes = {name: client.get(f'/api/{name}', params=query) for name in ('versions', 'snapshot', 'aging', 'backfill', 'bridge')}
+    routes = {name: client.get(f'/api/{name}', params=query) for name in ('versions', 'snapshot', 'aging', 'backfill', 'bridge', 'migration')}
     assert all(value.status_code == 200 for value in routes.values())
     archive = client.post('/api/archive', json=query).json()
     bundle = client.get(f"/api/archive/{archive['manifest']['run_id']}/export").json()['result']
@@ -22,6 +22,6 @@ def test_all_module_routes_after_real_file_upload(client, raw, params):
 def test_home_serves_workbench_and_local_assets(client):
     reply = client.get('/')
     assert reply.status_code == 200 and '双时态应收快照' in reply.text
-    assert all(f'data-page="{name}"' in reply.text for name in ('intake', 'versions', 'snapshot', 'aging', 'backfill', 'bridge', 'archive'))
+    assert all(f'data-page="{name}"' in reply.text for name in ('intake', 'versions', 'snapshot', 'aging', 'backfill', 'bridge', 'migration', 'archive'))
     assets = ['theme.css', 'layout.css', 'components.css', 'workbench.js', 'views.js', 'axis.js']
     assert all(client.get(f'/static/{item}').status_code == 200 for item in assets)

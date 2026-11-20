@@ -14,6 +14,12 @@ CREATE TABLE IF NOT EXISTS archives (
   result_digest TEXT NOT NULL, payload BLOB NOT NULL
 );
 CREATE INDEX IF NOT EXISTS archives_time ON archives(generated_at DESC, run_id);
+CREATE TABLE IF NOT EXISTS migration_runs (
+  publish_id TEXT PRIMARY KEY, source_id TEXT NOT NULL REFERENCES sources(source_id),
+  rule_version TEXT NOT NULL, generated_at TEXT NOT NULL, elapsed_ms INTEGER NOT NULL,
+  result_digest TEXT NOT NULL, payload BLOB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS migration_runs_time ON migration_runs(generated_at DESC, publish_id);
 """
 
 

@@ -14,6 +14,7 @@
 | M5 迟报回补 | 固定期初有效日对比两个知悉截面 | `GET /api/backfill` | `app/modules/m5_backfill/service.py` `app/modules/m5_backfill/changes.py` | `tests/test_backfill.py` |
 | M6 期间桥接 | 勾稽总金额和每桶迁移 | `GET /api/bridge` | `app/modules/m6_bridge/ledger.py` `app/modules/m6_bridge/bucket_flow.py` | `tests/test_bridge.py` |
 | M7 快照归档 | 保存、重算和导出证据 | `POST /api/archive` | `app/modules/m7_archive/service.py` `app/modules/m7_archive/export.py` | `tests/test_archive.py` |
+| M8 迁移对账 | 声明到期日口径、发布受影响发票对账 | `GET/POST /api/migration` | `app/modules/m8_migration/records.py` `app/modules/m8_migration/service.py` | `tests/test_migration.py` |
 
 ## 陷阱登记
 

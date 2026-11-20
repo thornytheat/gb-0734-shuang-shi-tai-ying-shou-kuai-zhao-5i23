@@ -2,7 +2,7 @@ import { axis, localInstant } from './axis.js';
 import * as view from './views.js';
 
 const { $ } = view;
-const state = {source: null, page: 'snapshot', cut: null, runs: [], selected: null, token: 0, busy: false, exact: {}};
+const state = {source: null, page: 'snapshot', cut: null, runs: [], selected: null, mruns: [], mrun: null, token: 0, busy: false, exact: {}};
 const pages = [...document.querySelectorAll('[data-page]')];
 const links = [...document.querySelectorAll('nav a')];
 const form = $('cuts');
@@ -29,6 +29,8 @@ function controls() {
   $('sample').disabled = state.busy;
   $('archive-run').disabled = state.busy || !state.source;
   $('rerun').disabled = state.busy || !state.selected;
+  $('migration-publish').disabled = state.busy || !state.source;
+  $('migration-rerun').disabled = state.busy || !state.mrun;
   $('upload').querySelector('button').disabled = state.busy;
   const link = $('export');
   if (state.selected) {
@@ -55,6 +57,12 @@ function setSelection(run) {
   $('time-meta').textContent = run ? localInstant(run.generated_at).slice(0, 19).replace('T', ' ') : '—';
   controls();
   if (state.page === 'archive') view.history(state.runs, run, setSelection);
+}
+
+function setMigrationSelection(run) {
+  state.mrun = run;
+  controls();
+  view.migrationRuns(state.mruns, run, setMigrationSelection);
 }
 
 function pick(name, stamp) {
@@ -95,6 +103,13 @@ async function refresh() {
       axis($('axis-known'), 'known', state.source.axis.known, data.cut.known, (stamp) => pick('known', stamp));
     } else if (page === 'intake') {
       view.intake(state.source);
+    } else if (page === 'migration') {
+      const [data, runs] = await Promise.all([request(`/api/migration?${query}`),
+        request(`/api/migration/runs?source_id=${state.source.source_id}`)]);
+      if (token !== state.token) return;
+      state.mruns = runs.runs;
+      view.migration(data);
+      view.migrationRuns(state.mruns, state.mrun, setMigrationSelection);
     } else {
       const data = await request(`/api/${page}?${query}`);
       if (token !== state.token) return;
@@ -142,7 +157,9 @@ function validate(cut) {
 async function setSource(source) {
   state.source = source;
   state.runs = [];
+  state.mruns = [];
   setSelection(null);
+  setMigrationSelection(null);
   $('source-meta').textContent = source.source_id.slice(0, 12);
   await refresh();
 }
@@ -155,7 +172,7 @@ form.addEventListener('input', (event) => { delete state.exact[event.target.name
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   const cut = formCut();
-  if (['backfill', 'bridge', 'archive'].includes(state.page) && !validate(cut)) return;
+  if (['backfill', 'bridge', 'migration', 'archive'].includes(state.page) && !validate(cut)) return;
   feedback();
   state.cut = cut;
   $('heading-period').textContent = cut.open_effective < cut.effective ? `${cut.open_effective} → ${cut.effective}` : `有效日 ${cut.effective}`;
@@ -195,6 +212,22 @@ $('rerun').addEventListener('click', () => act(async () => {
   setSelection(data.manifest);
   refresh();
   feedback('重跑一致，归档批次号不变');
+}));
+$('migration-publish').addEventListener('click', () => act(async () => {
+  const cut = formCut();
+  if (!form.reportValidity() || !validate(cut)) return;
+  const data = await request('/api/migration', {method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({...cut, source_id: state.source.source_id})});
+  state.cut = cut;
+  setMigrationSelection(data.manifest);
+  await refresh();
+  feedback(data.created ? `迁移对账已发布，受影响发票 ${data.affected} 笔` : '已复用同一发布批次');
+}));
+$('migration-rerun').addEventListener('click', () => act(async () => {
+  const data = await request(`/api/migration/${state.mrun.publish_id}/rerun`, {method: 'POST'});
+  setMigrationSelection(data.manifest);
+  refresh();
+  feedback('重跑一致，发布批次不变');
 }));
 window.addEventListener('hashchange', () => { switchPage(); feedback(); refresh(); });
 switchPage();
